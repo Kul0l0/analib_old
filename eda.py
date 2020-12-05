@@ -14,35 +14,54 @@ def get_file_list(data_dir_path):
     :param data_dir_path: the dir path contain all data file
     :type data_dir_path: str
     :return: the list contain all data-file-path
-    :rtype: list
+    :rtype: dict
     """
-    file_list = []
+    file_path_type_dict = {}
     if os.path.isdir(data_dir_path):
         for file in os.listdir(data_dir_path):
             file_path = os.path.join(data_dir_path, file)
             file_type = str.split(file, '.')[-1]
 
             if file_type in const.FILE_TYPE:
-                file_list.append(file_path)
+                file_path_type_dict[file_path] = file_type
+                print(file_path)
 
-        return file_list
+        return file_path_type_dict
     else:
-        print('bad data path.')
+        print('bad data path!')
         raise
 
 
-def generate_dict(data_dir_path):
+def csv_get_val_type_ser(file_path):
+    df = pd.read_csv(file_path, nrows=10)
+    return df.dtypes
+
+
+def generate_dictionary(data_dir_path, result_path):
     """
-    generate the source data of dict
+    generate the data dictionary
 
     :param data_dir_path: the dir path contain all data file
     :type data_dir_path: str
+    :param result_path: the path save dictionary
+    :type result_path: str
     """
-    file_list = get_file_list(data_dir_path)
-    print(file_list)
+    file_path_type_dict = get_file_list(data_dir_path)
 
+    dictionary = pd.DataFrame()
+    options = {
+        'csv': csv_get_val_type_ser,
+    }
+    for file_path, file_type in file_path_type_dict.items():
+        ser = options[file_type](file_path)
+        dictionary = pd.concat([dictionary, pd.DataFrame(ser, columns=['type'])], )
 
-############################ old code ##
+    dictionary.insert(loc=0, column='name', value = dictionary.index)
+    dictionary.drop_duplicates(ignore_index=True, inplace=True)
+
+    dictionary.to_csv(os.path.join(result_path, 'dictionary.csv'), index=False)
+
+################# old code #############
 ########################################
 def get_classifier_features_name(df):
     nuniq = df.nunique()
@@ -133,4 +152,4 @@ class Ana(object):
 
 if __name__ == '__main__':
     data_path = '/home/hanhe/dev_e/Data/kaggle/riiid'
-    getDict(data_path)
+    # getDict(data_path)
