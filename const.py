@@ -3,7 +3,8 @@
 '''
 @Author  : Kul0l0
 @File    : const.py
-@Time    : 2020/12/5 下午5:59
 '''
 
-FILE_TYPE = {'csv'}
+
+DATA_FILE_TYPE = {'csv'}
+NROWS = 10*5
