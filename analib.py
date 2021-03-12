@@ -26,14 +26,13 @@ def get_files_type_paths(home_path):
         for file_name in files_name:
             file_path = os.path.join(dir_path, file_name)
             file_type = str.split(file_name, '.')[-1]
-
             if file_type_path_dict.get(file_type) is None:
                 file_type_path_dict[file_type] = [file_path]
             file_type_path_dict[file_type].append(file_path)
     return file_type_path_dict
 
 
-def generate_dictionary(base_df=None, file_path=None, output_path='./', save=True):
+def generate_dictionary(base_df=None, file_path=None, output_path='./', save=True, useless_col=None):
     """
     generate a data dictionary.
     save to the result path or return directly.
@@ -49,6 +48,12 @@ def generate_dictionary(base_df=None, file_path=None, output_path='./', save=Tru
     :return: a Dataframe of dictionary
     :rtype: DataFrame
     """
+    def attach_label(ser, label_dict):
+        for label, val in label_dict.items():
+            if val and ser in val:
+                return label
+        return None
+
     # input check
     if base_df is None and file_path is None:
         print('Please, provide a df or a path of data')
@@ -60,18 +65,24 @@ def generate_dictionary(base_df=None, file_path=None, output_path='./', save=Tru
     if base_df is None:
         file_type = file_path.split('.')[-1]
         base_df = get_df[file_type](file_path)
-    # describe
-    describe_df = base_df.describe().T
-    # nunique
-    nuniq = base_df.nunique()
-    nuniq.name = const.CN_NUNIQUE
-    # missing rate
-    missing_rate = base_df.isna().sum()/base_df.shape[0]
-    missing_rate.name = const.CN_MISSING_RATE
     # build return df
     dictionary = pd.DataFrame(data=base_df.dtypes, columns=[const.CN_TYPE])
     dictionary.insert(loc=0, column=const.CN_FEATURE_NAME, value = dictionary.index)
+    ## add label
+    useless_col_dict = {const.MSG_USELESS: useless_col}
+    dictionary[const.CN_FEATURE_LABEL] = dictionary[const.CN_FEATURE_NAME].apply(func=attach_label, args=[useless_col_dict])
     dictionary[const.CN_EXPLANATION] = None
+    # drop useless col
+    use_col = set(base_df.columns)-set(useless_col)
+    useful_base_df = base_df[use_col]
+    # describe
+    describe_df = useful_base_df.describe().T
+    # nunique
+    nuniq = useful_base_df.nunique()
+    nuniq.name = const.CN_NUNIQUE
+    # missing rate
+    missing_rate = useful_base_df.isna().sum()/useful_base_df.shape[0]
+    missing_rate.name = const.CN_MISSING_RATE
     # concat
     dictionary = pd.concat([dictionary, nuniq, missing_rate, describe_df], axis=1)
     # output check
@@ -99,6 +110,7 @@ def add_colunms(table:pd.DataFrame, locs, col_names, values):
 def paint_table(table, key, colors):
     pass
 
+
 class EDA(object):
 
     def __init__(self, data_dir_path=None, output_path=None, useless_col=None):
@@ -109,8 +121,8 @@ class EDA(object):
             'csv': pd.read_csv,
         }
         self.df_list = []
-        self.sheet_names = []
-        self.sheet_contents = []
+        # self.sheet_names = []
+        # self.sheet_contents = []
 
     @staticmethod
     def value_count_df(ser, bins=None):
@@ -129,7 +141,7 @@ class EDA(object):
     def generate_distribution(self, data_df, col_names, data_types):
         # The types that have been processed include int, float, bool, object
         return_df = pd.DataFrame()
-        for col_name, data_type in zip(col_names, data_types):
+        for idx, col_name, data_type in zip(range(len(col_names)), col_names, data_types):
             nunique = data_df[col_name].nunique()
             bins = None
             if data_type in (int, float, bool):
@@ -155,6 +167,9 @@ class EDA(object):
                 )
             distribution_df.insert(loc=1, column=const.CN_TYPE, value=data_type)
             distribution_df.sort_values(by=const.CN_VALUE, inplace=True)
+            # paint
+            if idx%2:
+                distribution_df.style.set_properties(**{'background-color': 'aliceblue'})
             # build return
             return_df = pd.concat([return_df, distribution_df])
 
@@ -169,31 +184,33 @@ class EDA(object):
             if file_type not in const.DATA_FILE_TYPE:
                 continue
             for file_path in file_paths:
+                sheet_contents = []
+                sheet_names = []
                 # load data to DataFrame
                 df = self.get_df[file_type](file_path)
                 self.df_list.append(df)
                 file_name = file_path.split('.')[0].split('/')[-1]
                 # generate dictionary
-                dict_df = generate_dictionary(base_df=df, save=False)
-                self.sheet_names.append("Dictionary")
-                self.sheet_contents.append(dict_df)
+                dict_df = generate_dictionary(base_df=df, save=False, useless_col=self.useless_col)
+                sheet_names.append("Dictionary")
+                sheet_contents.append(dict_df)
                 # drop useless feature columns
-                if self.useless_col:
-                    dict_df.drop(index=self.useless_col, inplace=True, errors='ignore')
+                # if self.useless_col:
+                #     dict_df.drop(index=self.useless_col, inplace=True, errors='ignore')
                 # generate distribution
                 distribution_df = self.generate_distribution(
                     data_df=df,
                     col_names=dict_df[const.CN_FEATURE_NAME],
                     data_types=dict_df[const.CN_TYPE],
                 )
-                self.sheet_names.append("Distribution")
-                self.sheet_contents.append(distribution_df)
+                sheet_names.append("Distribution")
+                sheet_contents.append(distribution_df)
                 # write excel
                 write_excel(
                     file_path=os.path.join(self.output_path, file_name),
                     extra=const.OP_EDA_EXTRA,
-                    sheet_names=self.sheet_names,
-                    sheet_contents=self.sheet_contents
+                    sheet_names=sheet_names,
+                    sheet_contents=sheet_contents,
                 )
 
 
