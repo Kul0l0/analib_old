@@ -18,6 +18,7 @@ class Resnet(Model):
         self.class_number = class_number
         self.stack_list = stack_list
         self.filter_list = filter_list
+
         #self.install()
 
     def call(self, inputs, training=None, mask=None):
@@ -48,14 +49,14 @@ class Resnet(Model):
     def bottleneck_block(self, inputs, begin, filters:int, kernel_size:int=3, strides:int=1):
         pass
 
-    def install_head(self, inputs):
-        #inputs = layers.Input(shape=(self.img_size, self.img_size, 3))
+    def install_head(self):
+        inputs = layers.Input(shape=(self.img_size, self.img_size, 3))
         if self.data_set == 'cifar10':
             outputs = layers.Conv2D(16, 3, 2, 'same', activation='relu')(inputs)
         else: # imagenet
             outputs = self.CBA_block(inputs, 64, 7, 2, padding=7)(inputs)
             outputs = layers.MaxPool2D(pool_size=3, strides=2, padding=((1,1),(1,1)))(outputs)
-        return outputs
+        return inputs, outputs
 
     def install_body(self, inputs):
         block_map = {
@@ -85,8 +86,6 @@ class Resnet(Model):
         body_outputs = self.install_body(head_outputs)
         tail_outputs = self.install_tail(body_outputs)
         return Model(head_inputs, tail_outputs)
-
-
 
 
 
