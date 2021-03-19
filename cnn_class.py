@@ -5,6 +5,7 @@
 @File    : cnn.py
 @Time    : 2021/3/8 下午3:16
 '''
+from tensorflow import keras
 from tensorflow.keras import Sequential, layers, Model
 from tensorflow.keras.layers import Layer
 
@@ -12,10 +13,10 @@ from tensorflow.keras.layers import Layer
 def CB_block(filters: int, kernel_size: int = 3, strides: int = 1, padding: object = 'same'):
     res = Sequential()
     if padding in ('same', 'valid'):
-        res.add(layers.Conv2D(filters, kernel_size, strides, padding=padding))
+        res.add(layers.Conv2D(filters, kernel_size, strides, padding=padding, kernel_regularizer=keras.regularizers.L2(l2=0.0001), bias_regularizer=keras.regularizers.L2(l2=0.0001)))
     else:
         res.add(layers.ZeroPadding2D(padding=padding))
-        res.add(layers.Conv2D(filters, kernel_size, strides, padding='valid'))
+        res.add(layers.Conv2D(filters, kernel_size, strides, padding='valid', kernel_regularizer=keras.regularizers.L2(l2=0.0001), bias_regularizer=keras.regularizers.L2(l2=0.0001)))
     res.add(layers.BatchNormalization())
     return res
 
@@ -115,7 +116,7 @@ class Resnet(Model):
     def install_head(self):
         res = Sequential()
         if self.data_set == 'cifar10':
-            res.add(layers.Conv2D(16, 3, 1, 'same', activation='relu'))
+            res.add(layers.Conv2D(16, 3, 1, 'same', activation='relu', kernel_regularizer=keras.regularizers.L2(l2=0.0001), bias_regularizer=keras.regularizers.L2(l2=0.0001)))
         else: # imagenet
             res.add(self.CBA_block(64, 7, 2, padding=7))
             res.add(layers.MaxPool2D(pool_size=3, strides=2, padding=((1,1),(1,1))))
@@ -143,5 +144,5 @@ class Resnet(Model):
     def install_tail(self):
         res = Sequential()
         res.add(layers.GlobalAveragePooling2D())
-        res.add(layers.Dense(self.class_number, activation='softmax'))
+        res.add(layers.Dense(self.class_number, activation='softmax', kernel_regularizer=keras.regularizers.L2(l2=0.0001)))
         return res
