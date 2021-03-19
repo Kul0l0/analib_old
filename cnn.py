@@ -9,9 +9,8 @@ from tensorflow.keras import Model
 from tensorflow.keras import layers
 
 
-class Resnet(Model):
+class Resnet():
     def __init__(self, data_set, block_type, img_size, class_number, stack_list, filter_list):
-        super(Resnet, self).__init__()
         self.data_set = data_set
         self.block_type = block_type
         self.img_size = img_size
@@ -19,12 +18,6 @@ class Resnet(Model):
         self.stack_list = stack_list
         self.filter_list = filter_list
 
-        #self.install()
-
-    def call(self, inputs, training=None, mask=None):
-        outputs = self.install_head(inputs)
-        outputs = self.install_body(outputs)
-        return self.install_tail(outputs)
 
     def CB_block(self, inputs, filters: int, kernel_size: int=3, strides:int=1, padding:object='valid'):
         if padding in ('same', 'valid'):
