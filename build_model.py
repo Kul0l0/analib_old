@@ -8,24 +8,37 @@
 from tensorflow import keras
 from tensorflow.keras import Sequential, layers, Model
 from tensorflow.keras.layers import Layer
+import const
 
 
-def CB_block(filters: int, kernel_size: int = 3, strides: int = 1, padding: object = 'same'):
-    res = Sequential()
+def CB_block(input = None, input_shape: set = (256,256,3), filters: int = 3, kernel_size: int = 3, strides: int = 1, padding: object = 'same'):
+    if input is None:
+        input = keras.Input(shape=input_shape)
     if padding in ('same', 'valid'):
-        res.add(layers.Conv2D(filters, kernel_size, strides, padding=padding, kernel_regularizer=keras.regularizers.L2(l2=0.0001), bias_regularizer=keras.regularizers.L2(l2=0.0001)))
+        output = (
+            layers.Conv2D(
+                filters, kernel_size, strides, padding=padding,
+                kernel_regularizer=keras.regularizers.L2(l2=0.0001),
+                bias_regularizer=keras.regularizers.L2(l2=0.0001),
+            )
+        )(input)
     else:
-        res.add(layers.ZeroPadding2D(padding=padding))
-        res.add(layers.Conv2D(filters, kernel_size, strides, padding='valid', kernel_regularizer=keras.regularizers.L2(l2=0.0001), bias_regularizer=keras.regularizers.L2(l2=0.0001)))
-    res.add(layers.BatchNormalization())
-    return res
+        output = layers.ZeroPadding2D(padding=padding)(input)
+        output = (
+            layers.Conv2D(
+                filters, kernel_size, strides, padding='valid',
+                kernel_regularizer=keras.regularizers.L2(l2=0.0001),
+                bias_regularizer=keras.regularizers.L2(l2=0.0001)
+            )
+        )(output)
+    output = layers.BatchNormalization()(output)
+    return output
 
 
-def CBA_block(filters: int, kernel_size: int = 3, strides: int = 1, padding: object = 'same'):
-    res = Sequential()
-    res.add(CB_block(filters, kernel_size, strides, padding))
-    res.add(layers.ReLU())
-    return res
+def CBA_block(input = None, input_shape: set = (256,256,3), filters: int = 3, kernel_size: int = 3, strides: int = 1, padding: object = 'same'):
+    output = CB_block(input, input_shape, filters, kernel_size, strides, padding)
+    output = layers.ReLU()(output)
+    return output
 
 class ResCommonBlock(Layer):
     def __init__(self, begin, filters:int, kernel_size:int=3, strides:int=1):
@@ -78,6 +91,37 @@ class ResBottleneckBlock(Layer):
             outputs = layers.add([self.block(inputs), self.shortcut(inputs)])
         return layers.ReLU()(outputs)
 
+# block_dict
+BLOCK_MAP = {
+    'CB': CB_block,
+    'CBA': CBA_block,
+}
+
+def build(input_shape, block_list: list, config_list: list):
+    '''
+    :param config:
+    input_shape: a set, example: (256, 256, 3)
+    block_type: str or list of block type
+    block_config: list of dict
+    :type config: dict
+    :return:
+    :rtype: tf model
+    '''
+    input, output = keras.Input(shape=input_shape), None
+    for block, config in zip(block_list, config_list):
+        if isinstance(block, str):
+            times = 1
+        else:
+            block, times = block
+        for i in range(times):
+            output = BLOCK_MAP[block](**config)
+    return keras.Model(inputs=input, outputs=output)
+
+
+
+
+def block_list():
+    print(list(BLOCK_MAP.keys()))
 
 class Resnet(Model):
     def __init__(self, data_set, block_type, img_size, class_number, stack_list, filter_list):
