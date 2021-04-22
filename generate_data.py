@@ -10,7 +10,6 @@ import cv2
 import os
 from tqdm import tqdm
 import numpy as np
-import numpy as np
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 def _bytes_feature(value):
@@ -46,36 +45,28 @@ def center_crop(img):
     else:
         return img[:, start:x+start]
 
-def save_TFR(data, out_file_name):
-    pass
-
 
 def serialize_example(img, label=None):
-    if label is None:
-        feature = {
-            'image': _bytes_feature(img),
-        }
-    else:
-        feature = {
-            'image': _bytes_feature(img),
-            'label': _float_feature(label),
-        }
+    feature = {'image': _bytes_feature(img)}
+    if label is not None:
+        feature['label'] = _float_feature(label)
     example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
     return example_proto.SerializeToString()
 
 
-def resize_save_TFR(file_list, label_list, out_file_name, image_size, color=True, type='crop'):
+def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, color=True, crop=False, normal=False):
+    # if color is True, img shape is [x,x,3]. else is [x,x]
     with tf.io.TFRecordWriter(out_file_name) as writer:
-        for idx,file in tqdm(enumerate(file_list)):
-            img = cv2.imread(file, color)
-            img = center_crop(img)
-            img = cv2.resize(img, image_size)
-            if not color:
-                img = img[:,:,tf.newaxis]
-            if label_list is not None:
-                example = serialize_example(img.tobytes(), label_list[idx])
-            else:
+        for idx,file_path in tqdm(enumerate(file_path_list)):
+            img = cv2.imread(file_path, color)
+            img = img[:, :, tf.newaxis] if len(img.shape)==2 else img
+            img = center_crop(img) if crop else img
+            img = cv2.resize(img, (image_size, image_size))
+            img = img / 255.0 if normal else img
+            if label_list is None:
                 example = serialize_example(img.tobytes(), None)
+            else:
+                example = serialize_example(img.tobytes(), label_list[idx])
             writer.write(example)
 
 
