@@ -19,8 +19,8 @@ def CB_block(input, conv_type = 'normal', **kwargs):
     output = (
         conv_func[conv_type](
             **kwargs,
-            kernel_regularizer=keras.regularizers.L2(l2=0.0001),
-            bias_regularizer=keras.regularizers.L2(l2=0.0001),
+            #kernel_regularizer=keras.regularizers.L2(l2=0.0001),
+            #bias_regularizer=keras.regularizers.L2(l2=0.0001),
             name='K%d_S%d_P%s_%d'%(kernel_size, strides, padding, np.random.randint(5000)),
         )
     )(input)
@@ -28,9 +28,15 @@ def CB_block(input, conv_type = 'normal', **kwargs):
     return output
 
 
-def CBA_block(input, conv_type = 'normal', active_type = 'relu', **kwargs):
+def CBD_block(input, conv_type = 'normal', rate=1.0, **kwargs):
     output = CB_block(input, conv_type, **kwargs)
-    output = layers.Activation(active_type)(output)
+    output = layers.Dropout(rate=rate)(output)
+    return output
+
+
+def CBA_block(input, conv_type = 'normal', activation = 'relu', **kwargs):
+    output = CB_block(input, conv_type, **kwargs)
+    output = layers.Activation(activation)(output)
     return output
 
 
@@ -50,19 +56,19 @@ def Res_plain_block(input, **kwargs):
 
 
 def Res_common_block(input, type: str=None, **kwargs):
-    filters, kernel_size, strides, padding = kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding']
-    shortcut = CB_block(input, filters=filters, kernel_size=1, strides=strides, padding='valid') if type=='edge' else input
-    output = CBA_block(input, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding)
-    output = CB_block(output, filters=filters, kernel_size=kernel_size, strides=1, padding=padding)
+    activation, filters, kernel_size, strides, padding = kwargs['activation'], kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding']
+    shortcut = CB_block(input, activation=activation, filters=filters, kernel_size=1, strides=strides, padding='valid') if type=='edge' else input
+    output = CBA_block(input, activation=activation, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding)
+    output = CB_block(output, activation=activation, filters=filters, kernel_size=kernel_size, strides=1, padding=padding)
     return layers.ReLU()(layers.add([shortcut, output]))
 
 
 def Res_bottleneck_block(input, type: str=None, **kwargs):
-    filters, kernel_size, strides, padding = kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding']
-    output = CBA_block(input, filters=filters, kernel_size=1, strides=strides, padding='valid')
-    output = CBA_block(output, filters=filters, kernel_size=kernel_size, strides=1, padding=padding)
-    output = CB_block(output, filters=filters*4, kernel_size=1, strides=1, padding='valid')
-    shortcut = CB_block(input, filters=filters*4, kernel_size=1, strides=strides, padding='valid') if type=='edge' else input
+    activation, filters, kernel_size, strides, padding = kwargs['activation'], kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding']
+    output = CBA_block(input, activation=activation, filters=filters, kernel_size=1, strides=strides, padding='valid')
+    output = CBA_block(output, activation=activation, filters=filters, kernel_size=kernel_size, strides=1, padding=padding)
+    output = CB_block(output, activation=activation, filters=filters*4, kernel_size=1, strides=1, padding='valid')
+    shortcut = CB_block(input, activation=activation, filters=filters*4, kernel_size=1, strides=strides, padding='valid') if type=='edge' else input
     return layers.ReLU()(layers.add([shortcut, output]))
 
 
@@ -75,36 +81,51 @@ def top_block(input, class_number, activation = 'softmax'):
     )(output)
     return  output
 
-def SE_block(input, ratio):
+def SE_block(input, r, activation='relu'):
     channel = input.shape[-1]
+    reduce_filter = int(channel*r)  if isinstance(r, float) else r
     output = layers.GlobalAveragePooling2D()(input)
-    output = layers.Dense(int(channel*ratio), activation='relu')(output)
-    output = layers.Dense(channel, activation='sigmoid')(output)
+    output = layers.Reshape((1,1,channel))(output)
+    output = layers.Conv2D(filters=reduce_filter, kernel_size=1, activation=activation)(output)
+    output = layers.Conv2D(filters=channel, kernel_size=1, activation='sigmoid')(output)
     mul = layers.Multiply()
     return mul([input, output])
 
-# def Res_common_SE_block(input, filters: int, kernel_size: int = 3, strides: int = 1, padding: object = 'same', type: str=None, ratio=0.5):
-#     shortcut = CB_block(input, filters, kernel_size=1, strides=strides, padding='valid') if type=='edge' else input
-#     output = CBA_block(input, filters, kernel_size, strides, padding=padding)
-#     output = CB_block(output, filters, kernel_size, strides=1, padding=padding)
-#     output = SE_block(output, ratio)
-#     return layers.ReLU()(layers.add([shortcut, output]))
 
-def MBConv6_block(input, filters: int, kernel_size: int = 3, strides: int = 1, padding: object = 'same', type: str=None):
-    output = CBA_block(input, filters, kernel_size=1, strides=strides, padding=padding, conv_type='normal')
-    output = CBA_block(output, filters, kernel_size, strides, padding=padding, conv_type='depthwise')
-    output = CB_block(output, filters, kernel_size=1, strides=1, padding=padding, conv_type='normal')
-    return layers.ReLU()(layers.add([input, output]))
+def SECB_block(input, r, conv_type = 'normal', activation = 'relu', **kwargs):
+    output = SE_block(input, r=r, activation=activation)
+    output = CB_block(output, conv_type, **kwargs)
+    return output
+
+
+def MBConv6_block(input, **kwargs):
+    activation, filters, kernel_size, r, rate, use_bias = (
+        kwargs['activation'],
+        kwargs['filters'],
+        kwargs['kernel_size'],
+        kwargs['r'],
+        kwargs['rate'],
+        kwargs['use_bias'],
+    )
+    output = CBA_block(input, activation=activation, filters=filters*6, kernel_size=1, strides=1, padding='same', use_bias=use_bias)
+    output = CBA_block(output, activation=activation, conv_type='depthwise', kernel_size=kernel_size, strides=1, padding='same', use_bias=use_bias)
+    output = SE_block(output, r, activation=activation)
+    output = CBD_block(output, rate=rate, filters=filters, kernel_size=1, strides=1, padding='same', use_bias=use_bias)
+    return layers.add([input, output])
+
 
 # block_dict
 BLOCK_MAP = {
     'CB':               CB_block,
     'CBA':              CBA_block,
+    'CBD':              CBD_block,
     'Res_plain':        Res_plain_block,
     'Res_common':       Res_common_block,
     'Res_bottleneck':   Res_bottleneck_block,
     'top':              top_block,
     'SE':               SE_block,
+    'SECB':             SECB_block,
+    'MBConv6':          MBConv6_block,
     #'Res_common_SE':    Res_common_SE_block,
 }
 

@@ -59,7 +59,7 @@ def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, col
     with tf.io.TFRecordWriter(out_file_name) as writer:
         for idx,file_path in tqdm(enumerate(file_path_list)):
             img = cv2.imread(file_path, color)
-            img = img[:, :, tf.newaxis] if len(img.shape)==2 else img
+            #img = img[:, :, tf.newaxis] if len(img.shape)==2 else img
             img = center_crop(img) if crop else img
             img = cv2.resize(img, (image_size, image_size))
             img = img / 255.0 if normal else img
