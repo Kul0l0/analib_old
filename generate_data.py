@@ -54,7 +54,7 @@ def serialize_example(img, label=None):
     return example_proto.SerializeToString()
 
 
-def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, color=True, crop=False, normal=False):
+def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, color=True, crop=False):
     # if color is True, img shape is [x,x,3]. else is [x,x]
     with tf.io.TFRecordWriter(out_file_name) as writer:
         for idx,file_path in tqdm(enumerate(file_path_list)):
@@ -62,7 +62,6 @@ def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, col
             #img = img[:, :, tf.newaxis] if len(img.shape)==2 else img
             img = center_crop(img) if crop else img
             img = cv2.resize(img, (image_size, image_size))
-            img = img / 255.0 if normal else img
             if label_list is None:
                 example = serialize_example(img.tobytes(), None)
             else:
