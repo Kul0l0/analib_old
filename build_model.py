@@ -21,7 +21,7 @@ def CB_block(input, conv_type = 'normal', **kwargs):
             **kwargs,
             #kernel_regularizer=keras.regularizers.L2(l2=0.0001),
             #bias_regularizer=keras.regularizers.L2(l2=0.0001),
-            name='K%d_S%d_P%s_%d'%(kernel_size, strides, padding, np.random.randint(5000)),
+            name='K%d_S%d_P%s_%d'%(kernel_size, strides, padding, np.random.randint(50000)),
         )
     )(input)
     output = layers.BatchNormalization()(output)
@@ -71,6 +71,26 @@ def Res_bottleneck_block(input, type: str=None, **kwargs):
     shortcut = CB_block(input, activation=activation, filters=filters*4, kernel_size=1, strides=strides, padding='valid') if type=='edge' else input
     return layers.ReLU()(layers.add([shortcut, output]))
 
+def Dark_res_block(input, type: str=None, **kwargs):
+    (
+        activation,
+        filters,
+        kernel_size,
+        strides,
+        padding,
+        use_bias,
+    ) = (
+        kwargs['activation'],
+        kwargs['filters'],
+        kwargs['kernel_size'],
+        kwargs['strides'],
+        kwargs['padding'],
+        kwargs['use_bias'],
+    )
+    shortcut = input
+    output = CB_block(input, activation=activation, filters=filters//2, kernel_size=1, strides=1, padding=padding, use_bias=use_bias)
+    output = CBA_block(output, activation=activation, filters=filters, kernel_size=kernel_size, strides=strides, padding=padding, use_bias=use_bias)
+    return layers.ReLU()(layers.add([shortcut, output]))
 
 def top_block(input, class_number, activation = 'softmax'):
     output = layers.GlobalAveragePooling2D()(input)
@@ -122,6 +142,7 @@ BLOCK_MAP = {
     'Res_plain':        Res_plain_block,
     'Res_common':       Res_common_block,
     'Res_bottleneck':   Res_bottleneck_block,
+    'Dark_res':         Dark_res_block,
     'top':              top_block,
     'SE':               SE_block,
     'SECB':             SECB_block,
@@ -129,22 +150,28 @@ BLOCK_MAP = {
     #'Res_common_SE':    Res_common_SE_block,
 }
 
-def build(input_shape, config_list: list):
-    input, output = keras.Input(shape=input_shape), None
+def build(input, config_list: list, return_model: bool=True, name=None):
+    if isinstance(input, int) or input is None:
+        input = keras.Input(shape=(input, input, 3))
+    output = None
     for block, config in config_list:
         if isinstance(block, str):
             times = 1
         else:
             block, times = block
         for i in range(times):
+            # not TF layers
             if block != 'TF':
                 config['input'] = input if output is None else output
                 output = BLOCK_MAP[block](**config)
+            # if block is "TF", config will be tf layers object
             else:
-                # if block is "TF", config will be tf layers object
                 output = input if output is None else output
                 output = config(output)
-    return keras.Model(inputs=input, outputs=output)
+    if return_model:
+        return keras.Model(inputs=input, outputs=output, name=name)
+    else:
+        return input, output
 
 def block_list():
     print(list(BLOCK_MAP.keys()))

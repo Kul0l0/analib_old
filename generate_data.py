@@ -45,14 +45,12 @@ def center_crop(img):
     else:
         return img[:, start:x+start]
 
-
 def serialize_example(img, label=None):
     feature = {'image': _bytes_feature(img)}
     if label is not None:
         feature['label'] = _float_feature(label)
     example_proto = tf.train.Example(features=tf.train.Features(feature=feature))
     return example_proto.SerializeToString()
-
 
 def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, color=True, crop=False):
     # if color is True, img shape is [x,x,3]. else is [x,x]
@@ -67,6 +65,3 @@ def generate_TFR(file_path_list, label_list, out_file_name, image_size=None, col
             else:
                 example = serialize_example(img.tobytes(), label_list[idx])
             writer.write(example)
-
-
-
