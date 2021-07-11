@@ -13,65 +13,66 @@ import build_model
 # template
 EfficientNetB0 = [
     #     ('TF',   layers.experimental.preprocessing.Rescaling(scale=1./255)),
-    ('TF',   layers.experimental.preprocessing.Normalization()),
+    ('TF', layers.experimental.preprocessing.Normalization()),
     # stem
-    ('TF',   layers.ZeroPadding2D(padding=((0, 1), (0, 1)))),
-    ('CBA',  {'filters':32, 'kernel_size':3, 'strides':2, 'padding':'valid', 'use_bias':False, 'activation': 'swish'}),
+    ('TF', layers.ZeroPadding2D(padding=((0, 1), (0, 1)))),
+    ('CBA', {'filters': 32, 'kernel_size': 3, 'strides': 2, 'padding': 'valid', 'use_bias': False, 'activation': 'swish'}),
     # block1a
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':3, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 8, 'activation': 'swish', 'filters':16, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 8, 'activation': 'swish', 'filters': 16, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # block2a
-    ('CBA',  {'filters':96, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('TF',   layers.ZeroPadding2D(padding=((0, 1), (0, 1)))),
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':3, 'strides':2, 'padding':'valid', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 4, 'activation': 'swish', 'filters':24, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'filters': 96, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('TF', layers.ZeroPadding2D(padding=((0, 1), (0, 1)))),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 3, 'strides': 2, 'padding': 'valid', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 4, 'activation': 'swish', 'filters': 24, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # block2b
-    ('MBConv6', {'r': 6, 'activation': 'swish', 'filters':24, 'kernel_size':3, 'use_bias':False, 'rate':0.025}),
+    ('MBConv6', {'r': 6, 'activation': 'swish', 'filters': 24, 'kernel_size': 3, 'use_bias': False, 'rate': 0.025}),
     # block3a
-    ('CBA',  {'filters':144, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('TF',   layers.ZeroPadding2D(padding=((2, 2), (2, 2)))),
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':5, 'strides':2, 'padding':'valid', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 6, 'activation': 'swish', 'filters':40, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'filters': 144, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('TF', layers.ZeroPadding2D(padding=((2, 2), (2, 2)))),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 5, 'strides': 2, 'padding': 'valid', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 6, 'activation': 'swish', 'filters': 40, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # block3b
-    ('MBConv6', {'r': 10, 'activation': 'swish', 'filters':40, 'kernel_size':5, 'use_bias':False, 'rate':0.05}),
+    ('MBConv6', {'r': 10, 'activation': 'swish', 'filters': 40, 'kernel_size': 5, 'use_bias': False, 'rate': 0.05}),
     # block4a
-    ('CBA',  {'filters':240, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('TF',   layers.ZeroPadding2D(padding=((1, 1), (1, 1)))),
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':3, 'strides':2, 'padding':'valid', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 10, 'activation': 'swish', 'filters':80, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'filters': 240, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('TF', layers.ZeroPadding2D(padding=((1, 1), (1, 1)))),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 3, 'strides': 2, 'padding': 'valid', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 10, 'activation': 'swish', 'filters': 80, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # block4b
-    ('MBConv6', {'r': 20, 'activation': 'swish', 'filters':80, 'kernel_size':3, 'use_bias':False, 'rate':0.075}),
+    ('MBConv6', {'r': 20, 'activation': 'swish', 'filters': 80, 'kernel_size': 3, 'use_bias': False, 'rate': 0.075}),
     # block4c
-    ('MBConv6', {'r': 20, 'activation': 'swish', 'filters':80, 'kernel_size':3, 'use_bias':False, 'rate':0.0875}),
+    ('MBConv6', {'r': 20, 'activation': 'swish', 'filters': 80, 'kernel_size': 3, 'use_bias': False, 'rate': 0.0875}),
     # block5a
-    ('CBA',  {'filters':480, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':5, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 20, 'activation': 'swish', 'filters':112, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'filters': 480, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 5, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 20, 'activation': 'swish', 'filters': 112, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # block5b
-    ('MBConv6', {'r': 28, 'activation': 'swish', 'filters':112, 'kernel_size':5, 'use_bias':False, 'rate':0.1125}),
+    ('MBConv6', {'r': 28, 'activation': 'swish', 'filters': 112, 'kernel_size': 5, 'use_bias': False, 'rate': 0.1125}),
     # block5c
-    ('MBConv6', {'r': 28, 'activation': 'swish', 'filters':112, 'kernel_size':5, 'use_bias':False, 'rate':0.125}),
+    ('MBConv6', {'r': 28, 'activation': 'swish', 'filters': 112, 'kernel_size': 5, 'use_bias': False, 'rate': 0.125}),
     # block6a
-    ('CBA',  {'filters':672, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('TF',   layers.ZeroPadding2D(padding=((2, 2), (2, 2)))),
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':5, 'strides':2, 'padding':'valid', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 28, 'activation': 'swish', 'filters':192, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'filters': 672, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('TF', layers.ZeroPadding2D(padding=((2, 2), (2, 2)))),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 5, 'strides': 2, 'padding': 'valid', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 28, 'activation': 'swish', 'filters': 192, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # block6b
-    ('MBConv6', {'r': 48, 'activation': 'swish', 'filters':192, 'kernel_size':5, 'use_bias':False, 'rate':0.15}),
+    ('MBConv6', {'r': 48, 'activation': 'swish', 'filters': 192, 'kernel_size': 5, 'use_bias': False, 'rate': 0.15}),
     # block6c
-    ('MBConv6', {'r': 48, 'activation': 'swish', 'filters':192, 'kernel_size':5, 'use_bias':False, 'rate':0.1625}),
+    ('MBConv6', {'r': 48, 'activation': 'swish', 'filters': 192, 'kernel_size': 5, 'use_bias': False, 'rate': 0.1625}),
     # block6d
-    ('MBConv6', {'r': 48, 'activation': 'swish', 'filters':192, 'kernel_size':5, 'use_bias':False, 'rate':0.175}),
+    ('MBConv6', {'r': 48, 'activation': 'swish', 'filters': 192, 'kernel_size': 5, 'use_bias': False, 'rate': 0.175}),
     # block7a
-    ('CBA',  {'filters':1152, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('CBA',  {'conv_type':'depthwise', 'kernel_size':3, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('SECB', {'r': 48, 'activation': 'swish', 'filters':320, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False}),
+    ('CBA', {'filters': 1152, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('CBA', {'conv_type': 'depthwise', 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('SECB', {'r': 48, 'activation': 'swish', 'filters': 320, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False}),
     # top
-    ('CBA',  {'filters':1280, 'kernel_size':1, 'strides':1, 'padding':'same', 'use_bias':False, 'activation': 'swish'}),
-    ('TF',   layers.GlobalAveragePooling2D()),
-    ('TF',   layers.Dropout(rate=0.2)),
-    ('TF',   layers.Dense(units=11, activation='sigmoid')),
+    ('CBA', {'filters': 1280, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'swish'}),
+    ('TF', layers.GlobalAveragePooling2D()),
+    ('TF', layers.Dropout(rate=0.2)),
+    ('TF', layers.Dense(units=11, activation='sigmoid')),
 ]
+
 
 def Darknet53():
     structure_256 = [
@@ -101,23 +102,37 @@ def Darknet53():
     model = keras.Model(input, (output_256, output_512, output_1024), name='Darknet53')
     return model
 
+
 yolo_max_boxes = 100
 yolo_iou_threshold = 0.5
 yolo_score_threshold = 0.5
 
-def yolov3(out_shape):
 
+def yolov3(class_num):
     # CBA5 block
-    def CBA5(_input, filter):
-        input = layers.Input(_input.shape[1:])
-        structures = [
-            ('CBA', {'filters': filter//2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
-            ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
-            ('CBA', {'filters': filter//2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
-            ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
-            ('CBA', {'filters': filter//2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
-        ]
-        return build_model.build(input, structures, return_model=True)
+    def Conv_block(input, filter):
+        def CUp(input, filter):
+            structures = [
+                ('CBA', {'filters': filter, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
+                ('TF', layers.UpSampling2D(2))
+            ]
+            return build_model.build(input, structures, return_model=False)[1]
+
+        def CBA5(input, filter):
+            structures = [
+                ('CBA', {'filters': filter // 2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
+                ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
+                ('CBA', {'filters': filter // 2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
+                ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
+                ('CBA', {'filters': filter // 2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
+            ]
+            return build_model.build(input, structures, return_model=False)[1]
+
+        if isinstance(input, tuple):
+            input, deep_input = input
+            deep_input = CUp(deep_input, filter // 2)
+            input = layers.Concatenate()([input, deep_input])
+        return CBA5(input, filter)
 
     # CUp+Concat block
     def CUp_Concat(input, filter):
@@ -127,47 +142,47 @@ def yolov3(out_shape):
                 ('TF', layers.UpSampling2D(2))
             ]
             return build_model.build(input, structures, return_model=False)
+
         res_input, cba_input = input
         _, cba_out = CUp(cba_input, filter)
         return layers.Concatenate()([res_input, cba_out])
 
     # CBA2 block
-    def CBA2(_input, filter, out_filter):
+    def CBA2(_input, filter, class_num):
         input = layers.Input(_input.shape[1:])
         structures = [
             ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
-            ('TF', layers.Conv2D(filters=out_filter, kernel_size=1, strides=1, padding='same', use_bias=True)),
+            ('TF', layers.Conv2D(filters=3 * (class_num + 5), kernel_size=1, strides=1, padding='same', use_bias=True)),
         ]
         model = build_model.build(input, structures, return_model=True)
         output = model(input)
-        output = layers.Lambda(lambda x: tf.reshape(x, (-1, tf.shape(x)[1], tf.shape(x)[2], 3, out_filter//3)))(output)
-        return tf.keras.Model(input, output, name='output%d'%filter)
+        output = layers.Lambda(lambda x: tf.reshape(x, (-1, tf.shape(x)[1], tf.shape(x)[2], 3, class_num + 5)))(output)
+        return tf.keras.Model(input, output, name='output%d' % filter)
 
     # inputlayer
-    input = layers.Input([416,416, 3])
+    input = layers.Input([416, 416, 3])
     # Darknet53 block
     darknet53 = Darknet53()
-    darknet_256,darknet_512,darknet_1024 = darknet53(input)
+    darknet_256, darknet_512, darknet_1024 = darknet53(input)
     # 1024 branch
-    cba5_1024 = CBA5(darknet_1024, 1024)(darknet_1024)
-    out_1024 = CBA2(cba5_1024, 1024, out_shape)(cba5_1024)
+    conv_1024 = Conv_block(darknet_1024, 1024)
+    out_1024 = CBA2(conv_1024, 1024, class_num)(conv_1024)
     # 512 branch
-    concat_512 = CUp_Concat((darknet_512, cba5_1024), 512//2)
-    cba5_512 = CBA5(concat_512, 512)(concat_512)
-    out_512 = CBA2(cba5_512, 512, out_shape)(cba5_512)
+    conv_512 = Conv_block((darknet_512, conv_1024), 512)
+    out_512 = CBA2(conv_512, 512, class_num)(conv_512)
     # 256 branch
-    concat_256 = CUp_Concat((darknet_256, cba5_512), 256//2)
-    cba5_256 = CBA5(concat_256, 256)(concat_256)
-    out_256 = CBA2(cba5_256, 256, out_shape)(cba5_256)
+    conv_256 = Conv_block((darknet_256, conv_512), 256)
+    out_256 = CBA2(conv_256, 256, class_num)(conv_256)
     # build model
     return keras.Model(inputs=input, outputs=[out_256, out_512, out_1024])
 
-def _meshgrid(n_a, n_b):
 
+def _meshgrid(n_a, n_b):
     return [
         tf.reshape(tf.tile(tf.range(n_a), [n_b]), (n_b, n_a)),
         tf.reshape(tf.repeat(tf.range(n_b), n_a), (n_b, n_a))
     ]
+
 
 def yolo_boxes(pred, anchors, classes):
     # pred: (batch_size, grid, grid, anchors, (x, y, w, h, obj, ...classes))
@@ -225,17 +240,16 @@ def yolo_nms(outputs, anchors, masks, classes):
 
     num_valid_nms_boxes = tf.shape(selected_indices)[0]
 
-    selected_indices = tf.concat([selected_indices,tf.zeros(yolo_max_boxes-num_valid_nms_boxes, tf.int32)], 0)
-    selected_scores = tf.concat([selected_scores,tf.zeros(yolo_max_boxes-num_valid_nms_boxes,tf.float32)], -1)
+    selected_indices = tf.concat([selected_indices, tf.zeros(yolo_max_boxes - num_valid_nms_boxes, tf.int32)], 0)
+    selected_scores = tf.concat([selected_scores, tf.zeros(yolo_max_boxes - num_valid_nms_boxes, tf.float32)], -1)
 
-    boxes=tf.gather(bbox, selected_indices)
+    boxes = tf.gather(bbox, selected_indices)
     boxes = tf.expand_dims(boxes, axis=0)
-    scores=selected_scores
+    scores = selected_scores
     scores = tf.expand_dims(scores, axis=0)
-    classes = tf.gather(classes,selected_indices)
+    classes = tf.gather(classes, selected_indices)
     classes = tf.expand_dims(classes, axis=0)
-    valid_detections=num_valid_nms_boxes
+    valid_detections = num_valid_nms_boxes
     valid_detections = tf.expand_dims(valid_detections, axis=0)
 
     return boxes, scores, classes, valid_detections
-

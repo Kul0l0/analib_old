@@ -9,10 +9,10 @@ from tensorflow import keras
 import template
 from tensorflow import keras
 
-out_shape = 3*(80+5)
+class_num = 80
 weight_path = '/home/hanhe/dev_e/Data/00.Model/yolov3.tf'
-yolo = template.yolov3(out_shape)
+yolo = template.yolov3(class_num)
 yolo.summary()
-#keras.utils.plot_model(yolo)
-# yolo.load_weights(weight_path).expect_partial()
+keras.utils.plot_model(yolo)
+yolo.load_weights(weight_path).expect_partial()
 

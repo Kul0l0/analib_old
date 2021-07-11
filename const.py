@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
-'''
+"""
 @Author  : Kul0l0
 @File    : const.py
-'''
-from tensorflow.keras import layers
-
+"""
 
 DATA_FILE_TYPE = {'csv'}
 # columns name
