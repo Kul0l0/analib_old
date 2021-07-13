@@ -8,7 +8,7 @@
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-import build_model
+from model import block
 
 # template
 EfficientNetB0 = [
@@ -84,21 +84,21 @@ def Darknet53():
         ('CBA', {'filters': 256, 'kernel_size': 3, 'strides': 2, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
         (('Dark_res', 8), {'filters': 256, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
     ]
-    input, output_256 = build_model.build(None, structure_256, return_model=False)
+    input, output_256 = block.build(None, structure_256, return_model=False)
     structure_512 = [
         ('CBA',
          {'filters': 512, 'kernel_size': 3, 'strides': 2, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
         (('Dark_res', 8),
          {'filters': 512, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
     ]
-    _, output_512 = build_model.build(output_256, structure_512, return_model=False)
+    _, output_512 = block.build(output_256, structure_512, return_model=False)
     structure_1024 = [
         ('CBA',
          {'filters': 1024, 'kernel_size': 3, 'strides': 2, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
         (('Dark_res', 4),
          {'filters': 1024, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
     ]
-    _, output_1024 = build_model.build(output_512, structure_1024, return_model=False)
+    _, output_1024 = block.build(output_512, structure_1024, return_model=False)
     model = keras.Model(input, (output_256, output_512, output_1024), name='Darknet53')
     return model
 
@@ -116,7 +116,7 @@ def yolov3(class_num):
                 ('CBA', {'filters': filter, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
                 ('TF', layers.UpSampling2D(2))
             ]
-            return build_model.build(input, structures, return_model=False)[1]
+            return block.build(input, structures, return_model=False)[1]
 
         def CBA5(input, filter):
             structures = [
@@ -126,7 +126,7 @@ def yolov3(class_num):
                 ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
                 ('CBA', {'filters': filter // 2, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
             ]
-            return build_model.build(input, structures, return_model=False)[1]
+            return block.build(input, structures, return_model=False)[1]
 
         if isinstance(input, tuple):
             input, deep_input = input
@@ -141,7 +141,7 @@ def yolov3(class_num):
                 ('CBA', {'filters': filter, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
                 ('TF', layers.UpSampling2D(2))
             ]
-            return build_model.build(input, structures, return_model=False)
+            return block.build(input, structures, return_model=False)
 
         res_input, cba_input = input
         _, cba_out = CUp(cba_input, filter)
@@ -154,7 +154,7 @@ def yolov3(class_num):
             ('CBA', {'filters': filter, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'use_bias': False, 'activation': 'relu'}),
             ('TF', layers.Conv2D(filters=3 * (class_num + 5), kernel_size=1, strides=1, padding='same', use_bias=True)),
         ]
-        model = build_model.build(input, structures, return_model=True)
+        model = block.build(input, structures, return_model=True)
         output = model(input)
         output = layers.Lambda(lambda x: tf.reshape(x, (-1, tf.shape(x)[1], tf.shape(x)[2], 3, class_num + 5)))(output)
         return tf.keras.Model(input, output, name='output%d' % filter)

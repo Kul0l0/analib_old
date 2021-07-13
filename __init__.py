@@ -8,5 +8,3 @@
 import sys
 sys.path.append('/home/hanhe/workSpace/07_GitHub/analib')
 
-import build_model
-import template
