@@ -33,30 +33,17 @@ def draw_boxs(img, boxs, box_color=(0, 0, 255), thickness=1, label_color=(0, 0, 
             )
 
 
-def mark_video(filename):
-    video = cv2.VideoCapture(filename)
-    if not video.isOpened():
-        print('Error opening the video file')
-        sys.exit(-1)
-    else:
-        fps = video.get(cv2.CAP_PROP_FPS)
-        print('fps: %d' % fps)
-        print('Frame  count: %d' % video.get(7))
-
+def mark_video(video, boxs_df):
+    fps = video.get(cv2.CAP_PROP_FPS)
     while video.isOpened():
         ret, frame = video.read()
         if ret is True:
-            cv2.putText(
-                img=frame,
-                text=str(fps),
-                org=(0, 30),
-                color=(0, 0, 0),
-                fontFace=cv2.FONT_HERSHEY_SIMPLEX,
-                fontScale=0.5,
-                thickness=1,
-            )
+            frame_number = video.get(cv2.CAP_PROP_POS_FRAMES)
+            print(frame_number)
+            sub_df = boxs_df[boxs_df['frame'] == frame_number]
+            draw_boxs(frame, sub_df.iloc[:, 1:].to_numpy())
             cv2.imshow('Frame', frame)
-            key = cv2.waitKey(int(1000 / video.get(5)))
+            key = cv2.waitKey(int(100))
 
             if key == ord('q'):
                 break
