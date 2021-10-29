@@ -82,13 +82,13 @@ def cba_block(block_input, conv_type='normal', activation='relu', **kwargs):
     return layers.Activation(activation)(block_output)
 
 
-def pool_block(block_input, pool_type: str = 'max', **kwargs):
+def pool_block(block_input, style: str = 'max', **kwargs):
     """
     pooling block
     :param block_input: image data for block input
     :type block_input: numpy array
-    :param pool_type: pool type, the key of pool_map
-    :type pool_type: str
+    :param style: pool type, the key of pool_map
+    :type style: str
     :param kwargs: param of pool layer
     :type kwargs: any
     :return: processed image data
@@ -98,7 +98,7 @@ def pool_block(block_input, pool_type: str = 'max', **kwargs):
         'max': layers.MaxPool2D,
         'avg': layers.GlobalAveragePooling2D,
     }
-    return pool_map[pool_type](**kwargs)(block_input)
+    return pool_map[style](**kwargs)(block_input)
 
 
 def plain_block(block_input, **kwargs):
@@ -223,6 +223,7 @@ BLOCK_MAP = {
     'res_common': res_common_block,
     'res_bottleneck': res_bottleneck_block,
     'dark_res': dark_res_block,
+    'pool': pool_block,
     'top': top_block,
     'SE': se_block,
     'SECB': secb_block,
@@ -232,6 +233,18 @@ BLOCK_MAP = {
 
 
 def build(block_input, config_list: list, return_model: bool = True, name=None):
+    def keymaping(args):
+        keymap = {
+            'k': 'kernel_size',
+            'f': 'filters',
+            's': 'strides',
+            'p': 'padding',
+            'a': 'activation',
+        }
+        for k, v in keymap.items():
+            if k in args:
+                args[v] = args.pop(k)
+
     if isinstance(block_input, int) or block_input is None:
         block_input = keras.Input(shape=(block_input, block_input, 3))
     block_output = None
@@ -239,10 +252,14 @@ def build(block_input, config_list: list, return_model: bool = True, name=None):
         if isinstance(block, str):
             times = 1
         else:
+            # duplicate the same block: ("CBA", 4), config
             block, times = block
         for i in range(times):
             # not TF layers
             if block != 'TF':
+                # map shortcut key name: k -> kernel_size
+                keymaping(config)
+
                 config['block_input'] = block_input if block_output is None else block_output
                 block_output = BLOCK_MAP[block](**config)
             # if block is "TF", config will be tf layers object

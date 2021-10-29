@@ -8,7 +8,7 @@
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-from model import block
+from experiment import block
 
 # template
 EfficientNetB0 = [
@@ -101,6 +101,52 @@ def Darknet53():
     _, output_1024 = block.build(output_512, structure_1024, return_model=False)
     model = keras.Model(input, (output_256, output_512, output_1024), name='Darknet53')
     return model
+
+
+def yolov1(input_shape=448, split=7, number=2, classification=20):
+    block_input = input_shape
+    config_list = [
+        ('CBA', dict(k=7, f=64, s=2, p='same')),
+        ('pool', dict(pool_size=2, s=2, style='max')),
+
+        ('CBA', dict(k=3, f=192, s=1, p='same')),
+        ('pool', dict(pool_size=2, s=2, style='max')),
+
+        ('CBA', dict(k=1, f=128, s=1, p='same')),
+        ('CBA', dict(k=3, f=256, s=1, p='same')),
+        ('CBA', dict(k=1, f=256, s=1, p='same')),
+        ('CBA', dict(k=3, f=512, s=1, p='same')),
+        ('pool', dict(pool_size=2, s=2, style='max')),
+        # x4
+        ('CBA', dict(k=1, f=256, s=1, p='same')),
+        ('CBA', dict(k=3, f=512, s=1, p='same')),
+        ('CBA', dict(k=1, f=256, s=1, p='same')),
+        ('CBA', dict(k=3, f=512, s=1, p='same')),
+        ('CBA', dict(k=1, f=256, s=1, p='same')),
+        ('CBA', dict(k=3, f=512, s=1, p='same')),
+        ('CBA', dict(k=1, f=256, s=1, p='same')),
+        ('CBA', dict(k=3, f=512, s=1, p='same')),
+
+        ('CBA', dict(k=1, f=512, s=1, p='same')),
+        ('CBA', dict(k=3, f=1024, s=1, p='same')),
+        ('pool', dict(pool_size=2, s=2, style='max')),
+        # x2
+        ('CBA', dict(k=1, f=512, s=1, p='same')),
+        ('CBA', dict(k=3, f=1024, s=1, p='same')),
+        ('CBA', dict(k=1, f=512, s=1, p='same')),
+        ('CBA', dict(k=3, f=1024, s=1, p='same')),
+        ('CBA', dict(k=3, f=1024, s=1, p='same')),
+        ('CBA', dict(k=3, f=1024, s=2, p='same')),
+
+        ('CBA', dict(k=3, f=1024, s=1, p='same')),
+        ('CBA', dict(k=3, f=1024, s=1, p='same')),
+        # conn layer
+        ('TF', layers.Flatten()),
+        ('TF', layers.Dense(units=4096, activation='relu')),
+        ('TF', layers.Dense(units=split*split*(classification+number*5), activation='sigmoid')),
+        ('TF', layers.Reshape(target_shape=(split, split, classification+number*5)))
+    ]
+    return block.build(block_input, config_list)
 
 
 yolo_max_boxes = 100
