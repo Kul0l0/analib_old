@@ -22,7 +22,7 @@ def conv2d_bn_block(**kwargs):
             layers.Conv2D(**kwargs),
             layers.BatchNormalization(),
         ],
-        name='Conv2D[f%d,k%d,s%d,%s]_BN_%s' % (f, k, s, p, random_str(3))
+        name='Conv2D_f%d_k%d_s%d_%s_BN_%s' % (f, k, s, p, random_str(3))
     )
 
 

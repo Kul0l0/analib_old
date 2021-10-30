@@ -8,7 +8,7 @@
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-from experiment import block
+from . import block
 
 
 # template
