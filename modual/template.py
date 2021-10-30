@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # encoding: utf-8
-'''
+"""
 @Author  : Kul0l0
 @File    : template.py
 @Time    : 2021/6/7 上午9:16
-'''
+"""
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
 from experiment import block
+
 
 # template
 EfficientNetB0 = [
@@ -219,7 +220,7 @@ def yolov3(class_num):
     # 256 branch
     conv_256 = Conv_block((darknet_256, conv_512), 256)
     out_256 = CBA2(conv_256, 256, class_num)(conv_256)
-    # build model
+    # build modual
     return keras.Model(inputs=input, outputs=[out_256, out_512, out_1024])
 
 

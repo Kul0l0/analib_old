@@ -5,7 +5,7 @@
 @File    : yolo.py
 @Time    : 2021/6/7 上午8:05
 '''
-from model import template
+from modual import template
 from tensorflow import keras
 
 class_num = 80
