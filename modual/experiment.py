@@ -28,15 +28,22 @@ class experiment:
                 to_file='%s.png' % os.path.join(self.model_config.get('outpath', './'), self.name),
                 show_shapes=True,
             )
+        # load strategy
+        if strategy:
+            self.cv = strategy.pop('cv', None)
+            self.batch_size = strategy.pop('batch_size')
+            self.epochs = strategy.pop('epochs')
 
     def __build__(self) -> keras.Model:
         # define input and output block
         input_shape = self.model_config.get('input_shape')
         inputs = keras.Input(shape=(input_shape, input_shape, 3))
-        outputs = inputs
         # build model structure
-        outputs = build_block(outputs, self.model_config.get('model_config'))
+        outputs = build_block(inputs, self.model_config.get('model_config'))
         return keras.Model(inputs=inputs, outputs=outputs, name=self.name)
+
+    def __train__(self, train_dataset, val_dataset=None):
+        pass
 
 
 # map shortcut to fullname
@@ -68,9 +75,12 @@ def build_block(features, config):
         return features
     elif isinstance(config, dict):
         times, name, args = config['times'], config['name'], config['args']
-        keymaping(args)
         for i in range(times):
-            features = block.BLOCK_MAP[name](**args)(features)
+            if name == 'TF':
+                features = args(features)
+            else:
+                keymaping(args)
+                features = block.BLOCK_MAP[name](**args)(features)
         return features
     else:
         raise TypeError("Error Type of config")

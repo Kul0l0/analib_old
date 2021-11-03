@@ -5,75 +5,49 @@
 @Time    : 2021/3/8 下午3:16
 """
 from tensorflow import keras
-from tensorflow.keras import layers
-import numpy as np
+from tensorflow.keras import layers, Sequential
 import random
 import string
 
 
-def random_str(length):
+def random_str(length) -> str:
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length))
 
 
-def conv2d_bn_block(**kwargs):
-    f, k, s, p = kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding']
-    return keras.Sequential(
+def conv2d_bn(**kwargs) -> Sequential:
+    k, s = kwargs['kernel_size'], kwargs['strides']
+    return Sequential(
         layers=[
             layers.Conv2D(**kwargs),
             layers.BatchNormalization(),
         ],
-        name='Conv2D_f%d_k%d_s%d_%s_BN_%s' % (f, k, s, p, random_str(3))
+        name='Conv2D_k%d_s%d_BN_%s' % (k, s, random_str(3))
     )
 
 
-def cbd_block(block_input, conv_type='normal', rate=1.0, **kwargs):
-    """
-    Conv2D, BatchNormalization and Dropout
-    :param block_input: image data for block input
-    :type block_input: numpy array, image data
-    :param conv_type: conv2d type, see: cb_block
-    :type conv_type: str
-    :param rate: rate of Dropout, [0.0, 1.0]
-    :type rate: float
-    :param kwargs: param of Conv2D
-    :type kwargs: any
-    :return: processed image data
-    :rtype: numpy array
-    """
-    block_output = cb_block(block_input, conv_type, **kwargs)
-    return layers.Dropout(rate=rate)(block_output)
+def conv2d_bn_dp(**kwargs):
+    k, s = kwargs['kernel_size'], kwargs['strides']
+    rate = kwargs.pop('rate')
+    name = 'Conv2D_k%d_s%d_BN_D_%s_%s' % (k, s, str(rate), random_str(3))
+    # make sequential
+    seq = Sequential(name=name)
+    seq.add(conv2d_bn(**kwargs))
+    seq.add(layers.Dropout(rate=rate))
+    return seq
 
 
-def cba_block(block_input, conv_type='normal', activation='relu', **kwargs):
-    """
-    Conv2d, BatchNormalization and Activation
-    :param block_input: image data for block input
-    :type block_input: numpy array
-    :param conv_type: conv2D type, see: cb_block
-    :type conv_type: str
-    :param activation: type of activation
-    :type activation: str
-    :param kwargs: param of conv2d
-    :type kwargs: any
-    :return: processed image data
-    :rtype: numpy array
-    """
-    block_output = cb_block(block_input, conv_type, **kwargs)
-    return layers.Activation(activation)(block_output)
+def conv2d_bn_a(**kwargs) -> Sequential:
+    k, s = kwargs['kernel_size'], kwargs['strides']
+    activation = kwargs.pop('activation')
+    name = 'Conv2D_k%d_s%d_BN_A_%s_%s' % (k, s, activation, random_str(3))
+    # make sequential
+    seq = Sequential(name=name)
+    seq.add(conv2d_bn(**kwargs))
+    seq.add(layers.Activation(activation=activation))
+    return seq
 
 
 def pool_block(block_input, style: str = 'max', **kwargs):
-    """
-    pooling block
-    :param block_input: image data for block input
-    :type block_input: numpy array
-    :param style: pool type, the key of pool_map
-    :type style: str
-    :param kwargs: param of pool layer
-    :type kwargs: any
-    :return: processed image data
-    :rtype: numpy array
-    """
     pool_map = {
         'max': layers.MaxPool2D,
         'avg': layers.GlobalAveragePooling2D,
@@ -81,34 +55,28 @@ def pool_block(block_input, style: str = 'max', **kwargs):
     return pool_map[style](**kwargs)(block_input)
 
 
-def plain_block(block_input, **kwargs):
-    """
-    two cba layers without shortcut, it use in degradation problem
-    :param block_input: input of block
-    :type block_input: numpy.ndarray
-    :param kwargs: param of Conv2d
-    :type kwargs: any
-    :return: processed image
-    :rtype: numpy.ndarray
-    """
-    block_output = cba_block(block_input, **kwargs)
+def res_plain_block(**kwargs):
+    k, s = kwargs['kernel_size'], kwargs['strides']
+    name = 'Plain_k%d_s%d_%s' % (k, s, random_str(3))
+    seq = Sequential(name=name)
+    seq.add(conv2d_bn_a(**kwargs))
     kwargs['strides'] = 1
-    block_output = cba_block(block_output, **kwargs)
-    return block_output
+    seq.add(conv2d_bn_a(**kwargs))
+    return seq
 
 
 def res_common_block(block_input, upsample: bool = False, **kwargs):
     # trunk
-    block_output = cba_block(block_input, **kwargs)
+    block_output = conv2d_bn_a(block_input, **kwargs)
     kwargs['strides'] = 1
-    block_output = cb_block(block_output, **kwargs)
+    block_output = conv2d_bn(block_output, **kwargs)
     # shortcut
     shortcut = block_input
     if upsample:
         kwargs['strides'] = 2
         kwargs['kernel_size'] = 1
         kwargs['padding'] = 'valid'
-        shortcut = cb_block(block_input, **kwargs)
+        shortcut = conv2d_bn(block_input, **kwargs)
     return layers.ReLU()(layers.add([shortcut, block_output]))
 
 
@@ -116,17 +84,17 @@ def res_bottleneck_block(block_input, upsample: bool = False, **kwargs):
     # trunk
     filters, kernel_size, strides = kwargs['filters'], kwargs['kernel_size'], kwargs['strides']
     kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding'] = filters // 4, 1, 1, 'valid'
-    block_output = cba_block(block_input, **kwargs)
+    block_output = conv2d_bn_a(block_input, **kwargs)
     kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs[
         'padding'] = filters // 4, kernel_size, strides, 'same'
-    block_output = cba_block(block_output, **kwargs)
+    block_output = conv2d_bn_a(block_output, **kwargs)
     kwargs['filters'], kwargs['kernel_size'], kwargs['strides'], kwargs['padding'] = filters, 1, 1, 'valid'
-    block_output = cb_block(block_output, **kwargs)
+    block_output = conv2d_bn(block_output, **kwargs)
     # shortcut
     shortcut = block_input
     if upsample:
         kwargs['strides'] = 2
-        shortcut = cb_block(block_input, **kwargs)
+        shortcut = conv2d_bn(block_input, **kwargs)
     return layers.ReLU()(layers.add([shortcut, block_output]))
 
 
@@ -147,21 +115,11 @@ def dark_res_block(block_input, **kwargs):
         kwargs['use_bias'],
     )
     shortcut = block_input
-    block_output = cb_block(block_input, activation=activation, filters=filters // 2, kernel_size=1, strides=1,
-                            padding=padding, use_bias=use_bias)
-    block_output = cba_block(block_output, activation=activation, filters=filters, kernel_size=kernel_size,
-                             strides=strides, padding=padding, use_bias=use_bias)
+    block_output = conv2d_bn(block_input, activation=activation, filters=filters // 2, kernel_size=1, strides=1,
+                             padding=padding, use_bias=use_bias)
+    block_output = conv2d_bn_a(block_output, activation=activation, filters=filters, kernel_size=kernel_size,
+                               strides=strides, padding=padding, use_bias=use_bias)
     return layers.ReLU()(layers.add([shortcut, block_output]))
-
-
-def top_block(block_input, class_number, activation='softmax'):
-    block_output = layers.GlobalAveragePooling2D()(block_input)
-    block_output = layers.Dense(
-        units=class_number,
-        activation=activation,
-        kernel_regularizer=keras.regularizers.L2(l2=0.0001)
-    )(block_output)
-    return block_output
 
 
 def se_block(block_input, r, activation='relu'):
@@ -177,7 +135,7 @@ def se_block(block_input, r, activation='relu'):
 
 def secb_block(block_input, r, conv_type='normal', activation='relu', **kwargs):
     block_output = se_block(block_input, r=r, activation=activation)
-    block_output = cb_block(block_output, conv_type, **kwargs)
+    block_output = conv2d_bn(block_output, conv_type, **kwargs)
     return block_output
 
 
@@ -190,22 +148,32 @@ def mbconv6_block(block_input, **kwargs):
         kwargs['rate'],
         kwargs['use_bias'],
     )
-    block_output = cba_block(block_input, activation=activation, filters=filters * 6, kernel_size=1, strides=1,
-                             padding='same', use_bias=use_bias)
-    block_output = cba_block(block_output, activation=activation, conv_type='depthwise', kernel_size=kernel_size,
-                             strides=1, padding='same', use_bias=use_bias)
+    block_output = conv2d_bn_a(block_input, activation=activation, filters=filters * 6, kernel_size=1, strides=1,
+                               padding='same', use_bias=use_bias)
+    block_output = conv2d_bn_a(block_output, activation=activation, conv_type='depthwise', kernel_size=kernel_size,
+                               strides=1, padding='same', use_bias=use_bias)
     block_output = se_block(block_output, r, activation=activation)
-    block_output = cbd_block(block_output, rate=rate, filters=filters, kernel_size=1, strides=1, padding='same',
+    block_output = conv2d_bn_dp(block_output, rate=rate, filters=filters, kernel_size=1, strides=1, padding='same',
                              use_bias=use_bias)
     return layers.add([block_input, block_output])
 
 
+def top_block(block_input, class_number, activation='softmax'):
+    block_output = layers.GlobalAveragePooling2D()(block_input)
+    block_output = layers.Dense(
+        units=class_number,
+        activation=activation,
+        kernel_regularizer=keras.regularizers.L2(l2=0.0001)
+    )(block_output)
+    return block_output
+
+
 # block_dict
 BLOCK_MAP = {
-    'CB': conv2d_bn_block,
-    'CBA': cba_block,
-    'CBD': cbd_block,
-    'res_plain': plain_block,
+    'CB': conv2d_bn,
+    'CBA': conv2d_bn_a,
+    'CBD': conv2d_bn_dp,
+    'res_plain': res_plain_block,
     'res_common': res_common_block,
     'res_bottleneck': res_bottleneck_block,
     'dark_res': dark_res_block,
