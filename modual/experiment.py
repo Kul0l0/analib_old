@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 
+import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from tensorflow.keras import layers, Model
+from sklearn.model_selection import train_test_split
 from . import block
 import os
 
 
 class experiment:
-    def __init__(self, *, model_config, strategy=None):
+    def __init__(self, *, model_config, strategy=None, fit=None):
         """
         define a experiment with a modual and train strategy
         :param model_config: dict
@@ -31,10 +33,11 @@ class experiment:
         # load strategy
         if strategy:
             self.cv = strategy.pop('cv', None)
-            self.batch_size = strategy.pop('batch_size')
-            self.epochs = strategy.pop('epochs')
+            self.strategy = strategy
+        if fit:
+            self.fit = fit
 
-    def __build__(self) -> keras.Model:
+    def __build__(self) -> Model:
         # define input and output block
         input_shape = self.model_config.get('input_shape')
         inputs = keras.Input(shape=(input_shape, input_shape, 3))
@@ -42,8 +45,23 @@ class experiment:
         outputs = build_block(inputs, self.model_config.get('model_config'))
         return keras.Model(inputs=inputs, outputs=outputs, name=self.name)
 
-    def __train__(self, train_dataset, val_dataset=None):
-        pass
+    def __compile__(self):
+        self.model.compile(**self.strategy)
+
+    def train(self, data, augment=None, test_size=None, random_state=369):
+        if self.cv:
+            pass
+        else:
+            # get data
+            train_data, val_data = split_dataset(data, test_size, random_state=random_state)
+            batch_size = self.fit.get('batch_size')
+            train_dataset = get_dataset(train_data, batch_size=batch_size, augment=augment)
+            val_dataset = get_dataset(val_data, batch_size=batch_size, val=True)
+            # compile model
+            self.__compile__()
+            self.fit['x'] = train_dataset
+            self.fit['validation_data'] = val_dataset
+            self.model.fit(**self.fit)
 
 
 # map shortcut to fullname
@@ -84,3 +102,29 @@ def build_block(features, config):
         return features
     else:
         raise TypeError("Error Type of config")
+
+
+def split_dataset(dataset, test_size=None, random_state=369):
+    if test_size is None:
+        return dataset, None
+    else:
+        train_x, val_x, train_y, val_y = train_test_split(*dataset, test_size=test_size, random_state=random_state)
+        return (train_x, train_y), (val_x, val_y)
+
+
+def get_dataset(dataset, batch_size, augment=None, val=False) -> tf.data.Dataset:
+    """
+    :param dataset: tuple, (data, label)
+    :param batch_size:
+    :param augment:
+    :param val:
+    :return:
+    """
+    dataset = tf.data.Dataset.from_tensor_slices(dataset)
+    if val is True:
+        return dataset.batch(batch_size=batch_size)
+    else:
+        dataset = dataset.shuffle(buffer_size=batch_size*3).batch(batch_size=batch_size, drop_remainder=True)
+        if augment:
+            dataset = dataset.map(augment, num_parallel_calls=-1)
+        return dataset.prefetch(-1)
