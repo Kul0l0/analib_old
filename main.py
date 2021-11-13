@@ -34,10 +34,10 @@ def augment(img, label):
 
 if __name__ == '__main__':
     N = 1
-    config = dict(
+    model_config = dict(
         input_shape=32,
         code='123',
-        outpath='./temp',
+        outdir='./temp/model123',
         plot=True,
         name='Plain',
         model_config=(
@@ -53,18 +53,21 @@ if __name__ == '__main__':
         )
     )
     strategy = dict(
-        # cv=0.2,
+        kfold=2,
+        seed=369,
         optimizer='adam',
         metrics=('accuracy'),
         loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
     )
-    fit = dict(
-        epochs=10,
+    fit_config = dict(
+        epochs=3,
         batch_size=128,
     )
-    ep = experiment.experiment(model_config=config, strategy=strategy, fit=fit)
-    print(ep.model.summary())
+    ep = experiment.experiment(model_config=model_config, strategy=strategy, fit_config=fit_config)
     (train_images, train_labels), (val_images, val_labels) = datasets.cifar10.load_data()
     data = np.concatenate([train_images, val_images]) / 255.0
     label = np.concatenate([train_labels, val_labels])
-    ep.train((data, label), augment=augment, test_size=0.3)
+    # ep.train((data, label), augment=augment, test_size=0.3)
+    ep.train((data, label), augment=augment)
+    print(np.array(ep.y_true).shape)
+    print(np.array(ep.y_pred).shape)
