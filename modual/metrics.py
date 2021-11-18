@@ -1,28 +1,48 @@
+#!/usr/bin/env python
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn import metrics
 import seaborn as sns
 import matplotlib.pyplot as plt
+from . import visualization as vz
+import os
 
 
-def cal_confusion_matrix(true_label: np.ndarray, pred_label: np.ndarray, label_name=None, out_path=None):
-    if true_label.shape == pred_label.shape:
-        cm = confusion_matrix(y_true=true_label, y_pred=pred_label, normalize='true')
-        ax = sns.heatmap(data=cm, annot=True)
-        ax.set_xlabel('Pred')
-        ax.set_ylabel('True')
-        if label_name:
-            ax.set_xticklabels(label_name)
-            ax.set_yticklabels(label_name)
-        plt.show()
+def cal_mean(func, y_true, y_pred):
+    score = func(y_true, y_pred, average=None)
+    score = np.append(score, np.mean(score))
+    return np.expand_dims(score, -1).round(2)
+
+
+def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, label_name=None, outdir=None):
+    fig, *axes = vz.confusion_matrix_layout(len(label_name), label_name)
+    # confusion matrix
+    cm = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
+    vz.imshow(axes[0], cm)
+    # sum simple
+    pred_sum = cm.sum(axis=0, keepdims=True)
+    vz.imshow(axes[1], pred_sum)
+    true_sum = cm.sum(axis=1, keepdims=True)
+    vz.imshow(axes[2], true_sum)
+    # recall and precision
+    recall = cal_mean(metrics.recall_score, y_true, y_pred)
+    vz.imshow(axes[3], recall)
+    precision = cal_mean(metrics.precision_score, y_true, y_pred)
+    vz.imshow(axes[4], precision)
+    plt.yticks(rotation=0)
+    if outdir:
+        plt.savefig(fname=os.path.join(outdir, 'confusion_matrix.png'))
     else:
-        # the shape is different
-        pass
+        plt.show()
+
+
+def main():
+    y_true = np.random.randint(0, 5, 100)
+    y_pred = np.random.randint(0, 5, 100)
+    print(y_true)
+    print(y_pred)
+    name = list('abcde')
+    confusion_matrix(y_true, y_pred, name)
 
 
 if __name__ == '__main__':
-    true = np.array([0, 0, 1, 1, 1, 2, 2, 2, 2, 2])
-    pred = np.random.randint(0, 3, 10)
-    print(true)
-    print(pred)
-    name = ['apple', 'beer', 'cat']
-    cal_confusion_matrix(true, pred, name)
+    main()

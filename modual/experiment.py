@@ -2,14 +2,14 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, Model
+from tensorflow.keras import layers
 from sklearn.model_selection import train_test_split, KFold
-from . import block
+from . import block, metrics
 import os
 
 
 class experiment:
-    def __init__(self, *, model_config, strategy=None, fit_config=None):
+    def __init__(self, *, experiment_config, model_config, strategy=None, fit_config=None, metrics=None):
         """
         define a experiment with a modual and train strategy
         :param model_config: dict
@@ -19,22 +19,25 @@ class experiment:
 
         :param strategy:
         """
-        self.model_config = model_config
-        self.strategy = strategy
-        self.code = model_config.get('code', block.random_str(3))
-        self.name = '%s_%s' % (model_config.get('name', 'model'), self.code)
-        self.outdir = model_config.get('outdir')
+        # experiment_config
+        self.ep_name = experiment_config.get('name')
+        self.outdir = experiment_config.get('outdir')
+        self.label_name = experiment_config.get('label_name')
         # build output dir
         if self.outdir is None:
-            os.makedirs('./%s' % self.name, exist_ok=True)
+            os.makedirs('./%s' % self.ep_name, exist_ok=True)
         else:
             os.makedirs(self.outdir, exist_ok=True)
+        # model_config
+        self.model_config = model_config
+        self.model_code = model_config.get('code', block.random_str(3))
+        self.model_name = '%s_%s' % (model_config.get('name', 'model'), self.model_code)
         # build model
         self.__build__()
         if self.model_config.get('plot'):
             keras.utils.plot_model(
                 model=self.model,
-                to_file='%s_structure.png' % os.path.join(self.outdir, self.name),
+                to_file='%s_structure.png' % os.path.join(self.outdir, self.model_name),
                 show_shapes=True,
             )
         # load strategy
@@ -42,19 +45,25 @@ class experiment:
             self.kfold = strategy.pop('kfold', None)
             self.seed = strategy.pop('seed', None)
             self.strategy = strategy
-        # config
+        # fit_config
         if fit_config:
             self.fit_config = fit_config
-        self.y_true = []
-        self.y_pred = []
+            self.y_true = np.array([])
+            self.y_pred = np.array([])
+        # metrics
+        self.metrics = metrics
 
     def __build__(self):
         # define input and output block
         input_shape = self.model_config.get('input_shape')
-        inputs = keras.Input(shape=(input_shape, input_shape, 3))
-        # build model structure
-        outputs = build_block(inputs, self.model_config.get('model_config'))
-        self.model = keras.Model(inputs=inputs, outputs=outputs, name=self.name)
+        if isinstance(input_shape, int):
+            inputs = keras.Input(shape=(input_shape, input_shape, 3))
+        else:
+            # input_shape is tuple
+            inputs = keras.Input(shape=input_shape)
+        outputs = build_block(inputs, self.model_config.get('model_structure'))
+        # build model
+        self.model = keras.Model(inputs=inputs, outputs=outputs, name=self.model_name)
 
     def __compile__(self):
         self.model.compile(**self.strategy)
@@ -64,8 +73,19 @@ class experiment:
         self.fit_config['validation_data'] = val_dataset
         self.model.fit(**self.fit_config)
 
+    def __metrics__(self, y_true, y_pred, outdir):
+        if 'confusion_matrix' in self.metrics:
+            metrics.confusion_matrix(
+                y_true=y_true,
+                y_pred=y_pred,
+                label_name=self.label_name,
+                outdir=outdir,
+            )
+
     def __get_dataset__(self, data, augment=None, val=None):
         batch_size = self.fit_config.get('batch_size')
+        if val:
+            return get_dataset(data, batch_size)
         return get_dataset(data, batch_size, augment)
 
     def train(self, data, augment=None, test_size=None):
@@ -74,6 +94,9 @@ class experiment:
             kf = KFold(self.kfold, random_state=self.seed, shuffle=True)
             counter = 1
             for train_idx, val_idx in kf.split(x):
+                # mkdir
+                model_outdir = os.path.join(self.outdir, "%s_%d" % (self.model_name, counter))
+                os.makedirs(model_outdir, exist_ok=True)
                 # get dataset
                 train_data = x[train_idx], y[train_idx]
                 val_data = x[val_idx], y[val_idx]
@@ -87,8 +110,12 @@ class experiment:
                 self.__compile__()
                 self.__fit__(train_dataset, val_dataset)
                 # save result
-                self.y_pred.extend(np.argmax(self.model.predict(x[val_idx]), axis=1))
-                self.y_true.extend(y[val_idx])
+                sub_y_pred = np.argmax(self.model.predict(x[val_idx]), axis=1)
+                sub_y_true = y[val_idx]
+                self.__metrics__(sub_y_true, sub_y_pred, outdir=model_outdir)
+                self.y_pred = np.append(self.y_pred, sub_y_pred)
+                self.y_true = np.append(self.y_true, sub_y_true)
+            self.__metrics__(self.y_true, self.y_pred, outdir=self.outdir)
         else:
             # get dataset
             train_data, val_data = split_data(data, test_size, random_state=self.seed)
@@ -97,6 +124,7 @@ class experiment:
             # compile model
             self.__compile__()
             self.__fit__(train_dataset, val_dataset)
+            self.__metrics__(self.y_true, self.y_pred, outdir=self.outdir)
 
 
 # map shortcut to fullname

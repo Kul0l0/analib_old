@@ -5,7 +5,7 @@
 @File    : main.py
 @Time    : 2021/6/7 上午8:05
 """
-from modual import template, experiment
+from modual import template, experiment, visualization
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, datasets
@@ -34,13 +34,17 @@ def augment(img, label):
 
 if __name__ == '__main__':
     N = 1
+    experiment_config = dict(
+        name='ep_test',
+        outdir='/home/hanhe/temp/ep_test',
+        label_name=['plane', 'mobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'],
+    )
     model_config = dict(
-        input_shape=32,
-        code='123',
-        outdir='./temp/model123',
-        plot=True,
         name='Plain',
-        model_config=(
+        code='123',
+        input_shape=32,
+        plot=True,
+        model_structure=(
             dict(name='CBA', times=1, args=dict(f=16, k=3, s=1, p='same', a='relu')),
             dict(name='res_plain', times=2 * N, args=dict(f=16, k=3, s=1, p='same', a='relu')),
             dict(name='res_plain', times=2 * N, args=dict(f=16, k=3, s=1, p='same', a='relu')),
@@ -60,14 +64,18 @@ if __name__ == '__main__':
         loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
     )
     fit_config = dict(
-        epochs=3,
+        epochs=5,
         batch_size=128,
     )
-    ep = experiment.experiment(model_config=model_config, strategy=strategy, fit_config=fit_config)
+    metrics = {'confusion_matrix'}
+    ep = experiment.experiment(
+        experiment_config=experiment_config,
+        model_config=model_config,
+        strategy=strategy,
+        fit_config=fit_config,
+        metrics=metrics,
+    )
     (train_images, train_labels), (val_images, val_labels) = datasets.cifar10.load_data()
     data = np.concatenate([train_images, val_images]) / 255.0
     label = np.concatenate([train_labels, val_labels])
-    # ep.train((data, label), augment=augment, test_size=0.3)
     ep.train((data, label), augment=augment)
-    print(np.array(ep.y_true).shape)
-    print(np.array(ep.y_pred).shape)
