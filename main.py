@@ -23,7 +23,7 @@ def load_yolo():
     return yolo.load_weights(weight_path).expect_partial()
 
 
-def augment(img, label):
+def no_augment(img, label):
     img = tf.cast(img, tf.float32)
     # img = tf.image.random_flip_left_right(img)
     # img = tf.image.resize_with_crop_or_pad(img, target_height=40, target_width=40)
@@ -41,7 +41,7 @@ if __name__ == '__main__':
     )
     model_config = dict(
         name='Plain',
-        code='123',
+        code='base',
         input_shape=32,
         plot=True,
         model_structure=(
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
     )
     fit_config = dict(
-        epochs=5,
+        epochs=3,
         batch_size=128,
     )
     metrics = {'confusion_matrix'}
@@ -78,4 +78,4 @@ if __name__ == '__main__':
     (train_images, train_labels), (val_images, val_labels) = datasets.cifar10.load_data()
     data = np.concatenate([train_images, val_images]) / 255.0
     label = np.concatenate([train_labels, val_labels])
-    ep.train((data, label), augment=augment)
+    ep.train((data, label), augment=no_augment)

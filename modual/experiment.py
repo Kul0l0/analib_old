@@ -48,8 +48,8 @@ class experiment:
         # fit_config
         if fit_config:
             self.fit_config = fit_config
-            self.y_true = np.array([])
-            self.y_pred = np.array([])
+            self.y_true = None
+            self.y_pred_prob = None
         # metrics
         self.metrics = metrics
 
@@ -73,11 +73,13 @@ class experiment:
         self.fit_config['validation_data'] = val_dataset
         self.model.fit(**self.fit_config)
 
-    def __metrics__(self, y_true, y_pred, outdir):
+    def __metrics__(self, y_true, y_pred_prob, outdir):
+        if self.metrics is None:
+            return
         if 'confusion_matrix' in self.metrics:
             metrics.confusion_matrix(
                 y_true=y_true,
-                y_pred=y_pred,
+                y_pred_prob=y_pred_prob,
                 label_name=self.label_name,
                 outdir=outdir,
             )
@@ -110,12 +112,16 @@ class experiment:
                 self.__compile__()
                 self.__fit__(train_dataset, val_dataset)
                 # save result
-                sub_y_pred = np.argmax(self.model.predict(x[val_idx]), axis=1)
+                sub_y_pred_prob = self.model.predict(x[val_idx])
                 sub_y_true = y[val_idx]
-                self.__metrics__(sub_y_true, sub_y_pred, outdir=model_outdir)
-                self.y_pred = np.append(self.y_pred, sub_y_pred)
-                self.y_true = np.append(self.y_true, sub_y_true)
-            self.__metrics__(self.y_true, self.y_pred, outdir=self.outdir)
+                self.__metrics__(sub_y_true, sub_y_pred_prob, outdir=model_outdir)
+                if self.y_pred_prob is None:
+                    self.y_pred_prob = sub_y_pred_prob
+                    self.y_true = sub_y_true
+                else:
+                    self.y_pred_prob = np.append(self.y_pred_prob, sub_y_pred_prob, axis=0)
+                    self.y_true = np.append(self.y_true, sub_y_true)
+            self.__metrics__(self.y_true, self.y_pred_prob, outdir=self.outdir)
         else:
             # get dataset
             train_data, val_data = split_data(data, test_size, random_state=self.seed)
@@ -124,7 +130,7 @@ class experiment:
             # compile model
             self.__compile__()
             self.__fit__(train_dataset, val_dataset)
-            self.__metrics__(self.y_true, self.y_pred, outdir=self.outdir)
+            self.__metrics__(self.y_true, self.y_pred_prob, outdir=self.outdir)
 
 
 # map shortcut to fullname
