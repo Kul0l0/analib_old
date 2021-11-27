@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 import numpy as np
-from sklearn import metrics
+from sklearn import metrics, preprocessing
 import matplotlib.pyplot as plt
 from . import visualization as vz
+# import visualization as vz
 import os
 
 
@@ -13,7 +14,7 @@ def cal_mean(func, y_true, y_pred):
 
 
 def confusion_matrix(y_true: np.ndarray, y_pred_prob: np.ndarray, label_name=None, outdir=None):
-    y_pred = np.argmax(y_pred_prob, axis=1)
+    y_pred = np.argmax(y_pred_prob, axis=1).ravel()
     fig, *axes = vz.confusion_matrix_layout(len(label_name), label_name)
     # confusion matrix
     cm = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
@@ -38,17 +39,37 @@ def confusion_matrix(y_true: np.ndarray, y_pred_prob: np.ndarray, label_name=Non
         plt.show()
 
 
-def AUC(y_true: np.ndarray, y_pred_prob: np.ndarray):
-    pass
+def ROC_AUC(y_true: np.ndarray, y_pred_prob: np.ndarray, label_number: int, outdir=None):
+    fig = plt.figure(dpi=200)
+    y_true_binary = preprocessing.label_binarize(y_true, classes=range(label_number))
+    fpr, tpr, auc = dict(), dict(), dict()
+    lw = 2
+    for label in range(label_number):
+        fpr[label], tpr[label], thresholds = metrics.roc_curve(y_true_binary[:, label], y_pred_prob[:, label])
+        auc[label] = metrics.auc(fpr[label], tpr[label])
+    # micro auc
+    fpr["micro"], tpr["micro"], _ = metrics.roc_curve(y_true_binary.ravel(), y_pred_prob.ravel())
+    auc["micro"] = metrics.auc(fpr["micro"], tpr["micro"])
+    # plot
+    for label, v in fpr.items():
+        plt.plot(fpr[label], tpr[label], label="label: %s, AUC: %f" % (label, auc[label]), lw=lw)
+    plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+    plt.legend(loc="lower right")
+    if outdir:
+        plt.savefig(fname=os.path.join(outdir, 'AUC.png'))
+    else:
+        plt.show()
 
 
 def main():
-    y_true = np.random.randint(0, 10, 10000)
-    y_pred = np.random.randint(0, 10, 10000)
-    print(y_true)
-    print(y_pred)
+    N = 5
+    y_true = np.random.randint(0, N, 100).flatten()
+    y_pred = np.random.randn(100, N)
     name = list('abcde')
-    confusion_matrix(y_true, y_pred, name)
+    ROC_AUC(y_true, y_pred, label_number=N)
+    # confusion_matrix(y_true, y_pred, name)
 
 
 if __name__ == '__main__':

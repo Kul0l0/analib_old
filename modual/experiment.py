@@ -23,6 +23,7 @@ class experiment:
         self.ep_name = experiment_config.get('name')
         self.outdir = experiment_config.get('outdir')
         self.label_name = experiment_config.get('label_name')
+        self.label_number = experiment_config.get('label_number')
         # build output dir
         if self.outdir is None:
             os.makedirs('./%s' % self.ep_name, exist_ok=True)
@@ -81,6 +82,13 @@ class experiment:
                 y_true=y_true,
                 y_pred_prob=y_pred_prob,
                 label_name=self.label_name,
+                outdir=outdir,
+            )
+        if 'AUC' in self.metrics:
+            metrics.ROC_AUC(
+                y_true=y_true,
+                y_pred_prob=y_pred_prob,
+                label_number=self.label_number,
                 outdir=outdir,
             )
 

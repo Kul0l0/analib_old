@@ -38,10 +38,11 @@ if __name__ == '__main__':
         name='ep_test',
         outdir='/home/hanhe/temp/ep_test',
         label_name=['plane', 'mobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'],
+        label_number=10,
     )
     model_config = dict(
         name='Plain',
-        code='base',
+        code='auc',
         input_shape=32,
         plot=True,
         model_structure=(
@@ -57,7 +58,7 @@ if __name__ == '__main__':
         )
     )
     strategy = dict(
-        kfold=2,
+        kfold=3,
         seed=369,
         optimizer='adam',
         metrics=('accuracy'),
@@ -67,7 +68,7 @@ if __name__ == '__main__':
         epochs=3,
         batch_size=128,
     )
-    metrics = {'confusion_matrix'}
+    metrics = {'confusion_matrix', 'AUC'}
     ep = experiment.experiment(
         experiment_config=experiment_config,
         model_config=model_config,
