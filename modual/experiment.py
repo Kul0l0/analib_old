@@ -84,13 +84,21 @@ class experiment:
                 label_name=self.label_name,
                 outdir=outdir,
             )
-        if 'AUC' in self.metrics:
+        if 'ROC_AUC' in self.metrics:
             metrics.ROC_AUC(
                 y_true=y_true,
                 y_pred_prob=y_pred_prob,
                 label_number=self.label_number,
                 outdir=outdir,
             )
+        if 'PR_AUC' in self.metrics:
+            metrics.PR_AUC(
+                y_true=y_true,
+                y_pred_prob=y_pred_prob,
+                label_number=self.label_number,
+                outdir=outdir,
+            )
+
 
     def __get_dataset__(self, data, augment=None, val=None):
         batch_size = self.fit_config.get('batch_size')

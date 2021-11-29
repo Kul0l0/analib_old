@@ -39,6 +39,30 @@ def confusion_matrix(y_true: np.ndarray, y_pred_prob: np.ndarray, label_name=Non
         plt.show()
 
 
+def PR_AUC(y_true: np.ndarray, y_pred_prob: np.ndarray, label_number: int, outdir=None):
+    fig = plt.figure(dpi=200)
+    y_true_binary = preprocessing.label_binarize(y_true, classes=range(label_number))
+    recall, precision, auc = dict(), dict(), dict()
+    lw = 2
+    for label in range(label_number):
+        precision[label], recall[label], thresholds = metrics.precision_recall_curve(y_true_binary[:, label], y_pred_prob[:, label])
+        auc[label] = metrics.auc(recall[label], precision[label])
+    # micro auc
+    precision["micro"], recall["micro"], _ = metrics.precision_recall_curve(y_true_binary.ravel(), y_pred_prob.ravel())
+    auc["micro"] = metrics.auc(recall["micro"], precision["micro"])
+    # plot
+    for label, v in recall.items():
+        plt.plot(recall[label], precision[label], label="label: %s, AUC: %f" % (label, auc[label]), lw=lw)
+    plt.plot([1, 0], [0, 1], color="navy", lw=lw, linestyle="--")
+    plt.xlabel("Recall")
+    plt.ylabel("Precision")
+    plt.legend(loc="lower left")
+    if outdir:
+        plt.savefig(fname=os.path.join(outdir, 'PR_AUC.png'))
+    else:
+        plt.show()
+
+
 def ROC_AUC(y_true: np.ndarray, y_pred_prob: np.ndarray, label_number: int, outdir=None):
     fig = plt.figure(dpi=200)
     y_true_binary = preprocessing.label_binarize(y_true, classes=range(label_number))
@@ -58,7 +82,7 @@ def ROC_AUC(y_true: np.ndarray, y_pred_prob: np.ndarray, label_number: int, outd
     plt.ylabel("True Positive Rate")
     plt.legend(loc="lower right")
     if outdir:
-        plt.savefig(fname=os.path.join(outdir, 'AUC.png'))
+        plt.savefig(fname=os.path.join(outdir, 'ROC_AUC.png'))
     else:
         plt.show()
 

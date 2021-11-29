@@ -42,7 +42,7 @@ if __name__ == '__main__':
     )
     model_config = dict(
         name='Plain',
-        code='auc',
+        code='all_auc',
         input_shape=32,
         plot=True,
         model_structure=(
@@ -65,10 +65,10 @@ if __name__ == '__main__':
         loss=keras.losses.SparseCategoricalCrossentropy(from_logits=False),
     )
     fit_config = dict(
-        epochs=3,
+        epochs=10,
         batch_size=128,
     )
-    metrics = {'confusion_matrix', 'AUC'}
+    metrics = {'confusion_matrix', 'ROC_AUC', 'PR_AUC'}
     ep = experiment.experiment(
         experiment_config=experiment_config,
         model_config=model_config,
