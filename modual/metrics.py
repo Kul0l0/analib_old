@@ -14,10 +14,10 @@ def cal_mean(func, y_true, y_pred):
 
 
 def confusion_matrix(y_true: np.ndarray, y_pred_prob: np.ndarray, label_name=None, outdir=None):
-    y_pred = np.argmax(y_pred_prob, axis=1).ravel()
+    y_pred_class = np.argmax(y_pred_prob, axis=1).ravel()
     fig, *axes = vz.confusion_matrix_layout(len(label_name), label_name)
     # confusion matrix
-    cm = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred)
+    cm = metrics.confusion_matrix(y_true=y_true, y_pred=y_pred_class)
     vz.imshow(axes[0], cm)
     # sum simple
     pred_sum = cm.sum(axis=0, keepdims=True)
@@ -25,12 +25,12 @@ def confusion_matrix(y_true: np.ndarray, y_pred_prob: np.ndarray, label_name=Non
     true_sum = cm.sum(axis=1, keepdims=True)
     vz.imshow(axes[2], true_sum)
     # recall and precision
-    recall = cal_mean(metrics.recall_score, y_true, y_pred)
+    recall = cal_mean(metrics.recall_score, y_true, y_pred_class)
     vz.imshow(axes[3], recall)
-    precision = cal_mean(metrics.precision_score, y_true, y_pred)
+    precision = cal_mean(metrics.precision_score, y_true, y_pred_class)
     vz.imshow(axes[4], precision)
     # accuracy
-    accuracy = metrics.accuracy_score(y_true, y_pred)
+    accuracy = metrics.accuracy_score(y_true, y_pred_class)
     axes[0].set_title('Accuracy: %f' % accuracy)
     plt.yticks(rotation=0)
     if outdir:
@@ -71,6 +71,8 @@ def ROC_AUC(y_true: np.ndarray, y_pred_prob: np.ndarray, label_number: int, outd
     for label in range(label_number):
         fpr[label], tpr[label], thresholds = metrics.roc_curve(y_true_binary[:, label], y_pred_prob[:, label])
         auc[label] = metrics.auc(fpr[label], tpr[label])
+    # macro_auc
+    macro_auc = metrics.roc_auc_score(y_true_binary, y_pred_prob)
     # micro auc
     fpr["micro"], tpr["micro"], _ = metrics.roc_curve(y_true_binary.ravel(), y_pred_prob.ravel())
     auc["micro"] = metrics.auc(fpr["micro"], tpr["micro"])
@@ -80,6 +82,7 @@ def ROC_AUC(y_true: np.ndarray, y_pred_prob: np.ndarray, label_number: int, outd
     plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
+    plt.title(np.mean(macro_auc))
     plt.legend(loc="lower right")
     if outdir:
         plt.savefig(fname=os.path.join(outdir, 'ROC_AUC.png'))
