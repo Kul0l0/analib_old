@@ -1,4 +1,4 @@
-from . import block
+from . import model
 from . import experiment
 from . import metrics
 from . import visualization

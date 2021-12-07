@@ -4,7 +4,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from sklearn.model_selection import train_test_split, KFold
-from . import block, metrics
+from . import model, metrics
 import os
 
 
@@ -31,7 +31,7 @@ class experiment:
             os.makedirs(self.outdir, exist_ok=True)
         # model_config
         self.model_config = model_config
-        self.model_code = model_config.get('code', block.random_str(3))
+        self.model_code = model_config.get('code', model.random_str(3))
         self.model_name = '%s_%s' % (model_config.get('name', 'model'), self.model_code)
         # build model
         self.__build__()
@@ -183,7 +183,7 @@ def build_block(features, config):
                 features = args(features)
             else:
                 keymaping(args)
-                features = block.BLOCK_MAP[name](**args)(features)
+                features = model.BLOCK_MAP[name](**args)(features)
         return features
     else:
         raise TypeError("Error Type of config")

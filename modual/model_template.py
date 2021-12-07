@@ -2,13 +2,13 @@
 # encoding: utf-8
 """
 @Author  : Kul0l0
-@File    : template.py
+@File    : model_template.py
 @Time    : 2021/6/7 上午9:16
 """
 from tensorflow.keras import layers
 from tensorflow import keras
 import tensorflow as tf
-from . import block
+from . import model
 
 
 # template
